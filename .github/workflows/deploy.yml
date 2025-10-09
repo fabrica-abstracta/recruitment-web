@@ -1,0 +1,38 @@
+name: "Deploy Next.js App to VPS"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.19.0'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js application
+        run: |
+          npm run build
+          
+      - name: List build output
+        run: ls -la out/ || echo "No out directory found"
+
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Deploy static files to VPS
+        run: |
+          sshpass -p "${{ secrets.SSH_PWD }}" \
+          rsync -avz --delete \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            ./out/ ${{ secrets.SSH_HOST }}:/var/www/reclutamiento
